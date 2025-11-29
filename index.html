@@ -17,9 +17,9 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-        window.firebaseModules = { initializeApp, getAuth, signInAnonymously, getFirestore, doc, setDoc, onSnapshot };
+        window.firebaseModules = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, setDoc, onSnapshot };
     </script>
 
     <script>
@@ -69,7 +69,6 @@
             color: #e5e7eb; 
             overflow-x: hidden;
         }
-        /* Spotlight Effect */
         .spotlight {
             background: radial-gradient(600px circle at var(--x) var(--y), rgba(99, 102, 241, 0.06), transparent 40%);
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;
@@ -79,8 +78,6 @@
             background-size: 40px 40px;
             mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
         }
-        
-        /* Glass Card */
         .glass-card {
             background: rgba(20, 20, 25, 0.4);
             backdrop-filter: blur(12px);
@@ -93,8 +90,6 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.2);
         }
-        
-        /* Shimmer Border */
         .shimmer-border {
             position: absolute; inset: 0; pointer-events: none; border-radius: 0.75rem; padding: 1px;
             background: linear-gradient(45deg, transparent 40%, rgba(168, 85, 247, 0.5) 50%, transparent 60%);
@@ -105,8 +100,6 @@
         }
         .glass-card:hover .shimmer-border { opacity: 1; animation: shimmer 2s linear infinite; }
         @keyframes shimmer { from { background-position: 100% 100%; } to { background-position: 0% 0%; } }
-
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #030508; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
@@ -119,7 +112,7 @@
         const { useState, useEffect, useRef } = React;
 
         // --- Config ---
-        const TARGET_USER = 'fengfeng1021'; // Hardcoded User
+        const TARGET_USER = 'fengfeng1021'; 
 
         // --- Icons ---
         const Icon = ({ d, size = 18, className = "" }) => (
@@ -134,7 +127,6 @@
             arrow: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>'
         };
 
-        // --- Mouse Spotlight Hook ---
         const useMousePosition = () => {
             const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
             useEffect(() => {
@@ -145,7 +137,6 @@
             return mousePosition;
         };
 
-        // --- Typing Effect Hook ---
         const useTypewriter = (text, speed = 100) => {
             const [displayText, setDisplayText] = useState('');
             useEffect(() => {
@@ -169,6 +160,7 @@
             const titleText = useTypewriter("鋒鋒的網頁導覽", 150);
             
             // State
+            const [user, setUser] = useState(null); // Auth User State
             const [adminKey, setAdminKey] = useState('');
             const [isAdmin, setIsAdmin] = useState(false);
             const [repos, setRepos] = useState([]);
@@ -183,70 +175,105 @@
             
             const [db, setDb] = useState(null);
 
-            // Init
+            // 1. Init Auth (Priority)
             useEffect(() => {
-                const init = async () => {
-                    const { initializeApp, getAuth, signInAnonymously, getFirestore } = window.firebaseModules;
+                const initAuth = async () => {
+                    if (!window.firebaseModules) return;
+                    const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore } = window.firebaseModules;
+                    
                     const app = initializeApp(JSON.parse(__firebase_config));
                     const auth = getAuth(app);
                     const firestore = getFirestore(app);
                     setDb(firestore);
-                    await signInAnonymously(auth);
-                    
-                    loadData(TARGET_USER, firestore);
 
+                    // Auth Flow
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        try {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } catch (e) {
+                            console.warn("Custom token fail, fallback anon", e);
+                            await signInAnonymously(auth);
+                        }
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    // Listener for Auth State
+                    onAuthStateChanged(auth, (u) => {
+                        if (u) {
+                            setUser(u);
+                            // Once user is set, data loading will trigger via effect
+                        }
+                    });
+
+                    // Local Admin Key
                     const savedKey = localStorage.getItem('nexus_admin_key');
                     if (savedKey) { setAdminKey(savedKey); setIsAdmin(true); }
                 };
-                if (window.firebaseModules) init();
+                initAuth();
             }, []);
 
-            const loadData = async (user, firestore) => {
+            // 2. Data Sync Effect (Runs only when user & db are ready)
+            useEffect(() => {
+                if (!user || !db) return;
+
+                // A. Setup Cloud Listener
                 const { doc, onSnapshot } = window.firebaseModules;
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
                 
-                // Cloud Sync
-                const docRef = doc(firestore, 'artifacts', appId, 'public', 'data', 'nexus_profiles', user.toLowerCase());
-                onSnapshot(docRef, (snap) => {
-                    if (snap.exists()) setCloudData(snap.data().repos || {});
+                // Correct Path: artifacts/{appId}/public/data/nexus_profiles/{username}
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase());
+                
+                const unsubscribe = onSnapshot(docRef, (snap) => {
+                    if (snap.exists()) {
+                        setCloudData(snap.data().repos || {});
+                    }
+                }, (err) => {
+                    console.error("Firestore Listen Error:", err);
                 });
 
-                // GitHub Fetch
-                try {
-                    const res = await fetch(`https://api.github.com/users/${user}/repos?sort=updated&per_page=100&type=owner`);
-                    const data = await res.json();
-                    if(!Array.isArray(data)) throw new Error("GitHub Limit");
-                    
-                    const hidden = ['hub', 'nav', `${user.toLowerCase()}.github.io`, 'fengfeng1021.github.io'];
-                    const list = data
-                        .filter(r => r.has_pages)
-                        .filter(r => !hidden.includes(r.name.toLowerCase()))
-                        .map(r => ({
-                            id: r.id,
-                            name: r.name,
-                            desc: r.description,
-                            url: r.homepage || `https://${user}.github.io/${r.name}`,
-                            date: r.updated_at.split('T')[0]
-                        }));
-                    setRepos(list);
-                    setStatus('ready');
-                } catch (e) {
-                    console.error(e);
-                    setStatus('error');
-                }
-            };
+                // B. Fetch GitHub Data
+                const fetchGitHub = async () => {
+                    try {
+                        const res = await fetch(`https://api.github.com/users/${TARGET_USER}/repos?sort=updated&per_page=100&type=owner`);
+                        if (!res.ok) throw new Error("GitHub Error");
+                        const data = await res.json();
+                        if(!Array.isArray(data)) return;
+                        
+                        const hidden = ['hub', 'nav', `${TARGET_USER.toLowerCase()}.github.io`, 'fengfeng1021.github.io'];
+                        const list = data
+                            .filter(r => r.has_pages)
+                            .filter(r => !hidden.includes(r.name.toLowerCase()))
+                            .map(r => ({
+                                id: r.id,
+                                name: r.name,
+                                desc: r.description,
+                                url: r.homepage || `https://${TARGET_USER}.github.io/${r.name}`,
+                                date: r.updated_at.split('T')[0]
+                            }));
+                        setRepos(list);
+                        setStatus('ready');
+                    } catch (e) {
+                        console.error(e);
+                        setStatus('error');
+                    }
+                };
+                fetchGitHub();
+
+                return () => unsubscribe(); // Cleanup listener on unmount
+            }, [user, db]);
 
             const saveToCloud = async (newData) => {
-                if (!db) return;
+                if (!db || !user) return;
                 const { doc, setDoc } = window.firebaseModules;
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER), {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase()), {
                         repos: newData,
                         lastUpdate: new Date().toISOString()
                     }, { merge: true });
-                    setCloudData(newData);
-                } catch(e) { alert("Save Error"); }
+                    // setCloudData is handled by snapshot listener
+                } catch(e) { alert("Save Error: " + e.message); }
             };
 
             const runAI = async () => {
