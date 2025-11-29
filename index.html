@@ -32,6 +32,8 @@
                         fg: '#e5e5e5',
                         dim: '#525252',
                         accent: '#ffffff',
+                        success: '#10b981',
+                        error: '#ef4444',
                     },
                     fontFamily: {
                         mono: ['JetBrains Mono', 'monospace'],
@@ -74,36 +76,22 @@
             transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             overflow: hidden;
         }
-        
-        /* Hover Effect: Scale & Border Light */
         .glass-item:hover {
             background: rgba(25, 25, 25, 0.6);
             border-color: rgba(255, 255, 255, 0.3);
             transform: scale(1.01) translateX(5px);
             box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
         }
-
-        /* Scan Line Sweep Effect */
         .glass-item::after {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 50%; height: 100%;
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
-            transform: skewX(-25deg);
-            transition: 0.5s;
-            pointer-events: none;
+            transform: skewX(-25deg); transition: 0.5s; pointer-events: none;
         }
-        .glass-item:hover::after {
-            left: 200%;
-            transition: 0.7s ease-in-out;
-        }
+        .glass-item:hover::after { left: 200%; transition: 0.7s ease-in-out; }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #050505; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
     </style>
 </head>
 <body>
@@ -114,7 +102,6 @@
 
         const TARGET_USER = 'fengfeng1021'; 
 
-        // --- Icons ---
         const Icon = ({ d, size = 16, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter" className={className} dangerouslySetInnerHTML={{ __html: d }} />
         );
@@ -123,40 +110,34 @@
             search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
             settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
             sparkles: '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3z"/>',
-            edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'
+            edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+            refresh: '<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>',
+            wifi: '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>',
+            wifiOff: '<line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>'
         };
 
-        // --- Particle Background Component ---
         const ParticleBackground = () => {
             const canvasRef = useRef(null);
-
             useEffect(() => {
                 const canvas = canvasRef.current;
                 const ctx = canvas.getContext('2d');
                 let animationFrameId;
                 let particles = [];
-
-                const resize = () => {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                };
+                const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
                 window.addEventListener('resize', resize);
                 resize();
-
                 class Particle {
-                    constructor() {
+                    constructor() { this.reset(); }
+                    reset() {
                         this.x = Math.random() * canvas.width;
-                        this.y = Math.random() * canvas.height + canvas.height; // Start from bottom
-                        this.speed = Math.random() * 0.5 + 0.1;
+                        this.y = Math.random() * canvas.height + canvas.height;
+                        this.speed = Math.random() * 0.3 + 0.1;
                         this.size = Math.random() * 1.5 + 0.5;
                         this.opacity = Math.random() * 0.5 + 0.1;
                     }
                     update() {
                         this.y -= this.speed;
-                        if (this.y < -10) {
-                            this.y = canvas.height + 10;
-                            this.x = Math.random() * canvas.width;
-                        }
+                        if (this.y < -10) this.reset();
                     }
                     draw() {
                         ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
@@ -165,35 +146,19 @@
                         ctx.fill();
                     }
                 }
-
-                // Initialize
-                for (let i = 0; i < 100; i++) particles.push(new Particle());
-
+                for (let i = 0; i < 80; i++) particles.push(new Particle());
                 const animate = () => {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Draw connections (optional subtle lines)
-                    // Simplified for performance: just dots
-                    particles.forEach(p => {
-                        p.update();
-                        p.draw();
-                    });
-
+                    particles.forEach(p => { p.update(); p.draw(); });
                     animationFrameId = requestAnimationFrame(animate);
                 };
                 animate();
-
-                return () => {
-                    window.removeEventListener('resize', resize);
-                    cancelAnimationFrame(animationFrameId);
-                };
+                return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(animationFrameId); };
             }, []);
-
             return <canvas ref={canvasRef} id="particle-canvas" />;
         };
 
         const App = () => {
-            // State
             const [repos, setRepos] = useState([]);
             const [cloudData, setCloudData] = useState({});
             const [searchTerm, setSearchTerm] = useState('');
@@ -203,45 +168,64 @@
             const [aiStatus, setAiStatus] = useState('idle');
             const [editTarget, setEditTarget] = useState(null);
             
-            // Firebase Refs
             const [db, setDb] = useState(null);
             const [user, setUser] = useState(null);
+            const [isCloudOnline, setIsCloudOnline] = useState(false);
 
-            // Init Logic
+            // 1. Core Init
             useEffect(() => {
-                const savedKey = localStorage.getItem('nexus_admin_key');
-                if(savedKey) { setAdminKey(savedKey); setIsAdmin(true); }
+                const init = async () => {
+                    const savedKey = localStorage.getItem('nexus_admin_key');
+                    if(savedKey) { setAdminKey(savedKey); setIsAdmin(true); }
 
-                // 1. Fetch GitHub
-                fetchGitHub();
+                    fetchGitHub();
 
-                // 2. Init Firebase
-                if(window.firebaseModules) {
-                    try {
-                        const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, onAuthStateChanged } = window.firebaseModules;
-                        const app = initializeApp(JSON.parse(__firebase_config));
-                        const auth = getAuth(app);
-                        const firestore = getFirestore(app);
-                        setDb(firestore);
-                        
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
-                        } else {
-                            signInAnonymously(auth);
-                        }
-                        onAuthStateChanged(auth, u => u && setUser(u));
-                    } catch(e) { console.warn("Firebase Offline"); }
-                }
+                    if(window.firebaseModules) {
+                        try {
+                            const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, onAuthStateChanged } = window.firebaseModules;
+                            const app = initializeApp(JSON.parse(__firebase_config));
+                            const auth = getAuth(app);
+                            const firestore = getFirestore(app);
+                            setDb(firestore);
+                            
+                            const connectAuth = async () => {
+                                try {
+                                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                                        await signInWithCustomToken(auth, __initial_auth_token);
+                                    } else {
+                                        await signInAnonymously(auth);
+                                    }
+                                } catch (e) {
+                                    console.warn("Auth initial fail, retry anon");
+                                    await signInAnonymously(auth).catch(e => console.error("Anon auth fail", e));
+                                }
+                            };
+                            connectAuth();
+
+                            onAuthStateChanged(auth, u => {
+                                setUser(u);
+                                setIsCloudOnline(!!u);
+                            });
+                        } catch(e) { console.warn("Firebase Offline"); }
+                    }
+                };
+                init();
             }, []);
 
-            // Firestore Listener
+            // 2. Firestore Listener
             useEffect(() => {
                 if(!user || !db) return;
                 const { doc, onSnapshot } = window.firebaseModules;
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
                 const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase()), 
-                    (snap) => { if(snap.exists()) setCloudData(snap.data().repos || {}); },
-                    (err) => console.warn("Read-only mode")
+                    (snap) => { 
+                        if(snap.exists()) setCloudData(snap.data().repos || {}); 
+                        setIsCloudOnline(true);
+                    },
+                    (err) => {
+                        console.warn("Read-only mode / Perms Error");
+                        setIsCloudOnline(false); // Mark as offline on error
+                    }
                 );
                 return () => unsub();
             }, [user, db]);
@@ -261,15 +245,32 @@
                 } catch(e) {}
             };
 
+            // Enhanced Save with Auto-Reconnect
             const saveToCloud = async (newData) => {
-                if(!db || !user) return alert("Cloud Offline");
+                if(!db) return alert("System Error: No DB");
+                
+                // Auto-Reconnect Logic
+                if (!user) {
+                    try {
+                        const { getAuth, signInAnonymously } = window.firebaseModules;
+                        await signInAnonymously(getAuth());
+                        // Wait a sec for auth to propagate? No need, await resolves with user
+                    } catch(e) {
+                        return alert("無法連線至雲端資料庫 (Auth Error)。\n請檢查網路或稍後再試。");
+                    }
+                }
+
                 const { doc, setDoc } = window.firebaseModules;
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase()), { 
                         repos: newData 
                     }, { merge: true });
-                } catch(e) { alert("Save Failed: " + e.message); }
+                    // Explicitly set cloud data locally to reflect change immediately
+                    setCloudData(newData);
+                } catch(e) { 
+                    alert("保存失敗 (Permission Denied)\n可能因為閒置過久，請重新整理網頁後再試。"); 
+                }
             };
 
             const runAI = async () => {
@@ -294,7 +295,7 @@
                     const newData = { ...cloudData };
                     results.forEach(r => newData[r.id] = { title: r.title, desc: r.desc });
                     saveToCloud(newData);
-                } catch(e) { alert("AI Error"); }
+                } catch(e) { alert("AI Error: " + e.message); }
                 setAiStatus('idle');
             };
 
@@ -309,16 +310,23 @@
                 return info.title.toLowerCase().includes(searchTerm.toLowerCase());
             });
 
+            const forceReconnect = async () => {
+                if(!window.firebaseModules) return;
+                const { getAuth, signInAnonymously } = window.firebaseModules;
+                await signInAnonymously(getAuth());
+            };
+
             return (
-                <div className="min-h-screen relative z-10 flex flex-col">
+                <div className="min-h-screen relative z-10 flex flex-col font-sans">
                     <ParticleBackground />
                     
-                    {/* Header Section */}
+                    {/* Header */}
                     <div className="pt-20 pb-10 px-6 max-w-3xl mx-auto w-full text-center relative z-20">
-                        <div className="mb-2 text-[10px] text-dim tracking-[0.6em] font-bold uppercase animate-pulse-slow">
-                            SYSTEM.ROOT // USER: FENGFENG
+                        <div className="mb-2 text-[10px] text-dim tracking-[0.6em] font-bold uppercase flex items-center justify-center gap-2">
+                            SYSTEM.ROOT // USER: FENGFENG 
+                            <span className={`w-2 h-2 rounded-full ${isCloudOnline ? 'bg-success shadow-[0_0_5px_#10b981]' : 'bg-error'}`}></span>
                         </div>
-                        <h1 className="text-4xl md:text-6xl font-display font-black text-white tracking-tight uppercase mb-8 leading-tight">
+                        <h1 className="text-4xl md:text-6xl font-display font-black text-white tracking-tight uppercase mb-8 leading-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
                             鋒鋒的網頁導覽
                         </h1>
                         <div className="h-px w-24 bg-white/20 mx-auto"></div>
@@ -336,7 +344,7 @@
                                     placeholder="SEARCH PROTOCOL..."
                                 />
                             </div>
-                            <button onClick={() => setShowSettings(true)} className="text-dim hover:text-white p-2 transition-colors">
+                            <button onClick={() => setShowSettings(true)} className={`text-dim hover:text-white p-2 transition-colors ${!isCloudOnline ? 'text-error animate-pulse' : ''}`}>
                                 <Icon d={icons.settings} />
                             </button>
                         </div>
@@ -345,7 +353,7 @@
                     {/* Admin Actions */}
                     {isAdmin && (
                         <div className="max-w-3xl mx-auto px-6 py-4 flex justify-end">
-                            <button onClick={runAI} disabled={aiStatus !== 'idle'} className="text-[10px] border border-white/10 hover:border-white text-dim hover:text-white px-3 py-1.5 rounded transition-all flex items-center gap-2">
+                            <button onClick={runAI} disabled={aiStatus !== 'idle' || !isCloudOnline} className="text-[10px] border border-white/10 hover:border-white text-dim hover:text-white px-3 py-1.5 rounded transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {aiStatus === 'processing' ? 'PROCESSING...' : <><Icon d={icons.sparkles} size={10}/> RUN AI SYNC</>}
                             </button>
                         </div>
@@ -354,14 +362,13 @@
                     {/* Main List */}
                     <div className="max-w-3xl mx-auto px-6 py-8 w-full flex-1">
                         <div className="flex flex-col gap-3">
-                            {filtered.length === 0 && <div className="text-dim font-mono text-center py-20 tracking-widest text-xs">INITIALIZING...</div>}
+                            {filtered.length === 0 && <div className="text-dim font-mono text-center py-20 tracking-widest text-xs">INITIALIZING DATA...</div>}
                             
                             {filtered.map((r, i) => {
                                 const info = cloudData[r.id] || { title: r.name, desc: r.desc || 'No Data' };
                                 
                                 return (
                                     <div key={r.id} className="glass-item group p-6 rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-4 opacity-0 animate-slide-up" style={{animationDelay: `${i*0.05}s`}}>
-                                        
                                         <div className="flex-1 min-w-0 relative z-10">
                                             <div className="flex items-center gap-3 mb-1.5">
                                                 <h3 className="text-lg text-white font-bold tracking-wide group-hover:text-white transition-colors truncate font-display">
@@ -393,7 +400,7 @@
                     {/* Footer */}
                     <div className="py-10 text-center">
                         <div className="text-[10px] text-dim font-mono uppercase tracking-[0.2em] opacity-50">
-                            System Status: Operational • {repos.length} Nodes
+                            {repos.length} NODES • {isCloudOnline ? 'SYNC ACTIVE' : 'OFFLINE MODE'}
                         </div>
                     </div>
 
@@ -403,11 +410,24 @@
                             <div className="bg-black border border-white/20 p-8 max-w-md w-full relative shadow-[0_0_80px_rgba(255,255,255,0.05)]" onClick={e => e.stopPropagation()}>
                                 {showSettings && (
                                     <div className="space-y-6">
-                                        <h2 className="text-lg font-display font-bold text-white border-b border-white/10 pb-2 tracking-widest">CONSOLE</h2>
+                                        <h2 className="text-lg font-display font-bold text-white border-b border-white/10 pb-2 tracking-widest flex justify-between items-center">
+                                            CONSOLE
+                                            <div className={`text-[10px] px-2 py-1 rounded font-mono ${isCloudOnline ? 'text-success bg-success/10' : 'text-error bg-error/10'}`}>
+                                                {isCloudOnline ? 'CLOUD ONLINE' : 'CLOUD OFFLINE'}
+                                            </div>
+                                        </h2>
+                                        
                                         <div>
                                             <label className="text-[10px] text-dim block mb-2 font-mono tracking-widest">ACCESS KEY</label>
                                             <input type="password" value={adminKey} onChange={e => { setAdminKey(e.target.value); setIsAdmin(!!e.target.value); localStorage.setItem('nexus_admin_key', e.target.value); }} className="w-full bg-white/5 border border-white/10 p-3 text-white text-xs font-mono outline-none focus:border-white transition-colors tracking-widest" placeholder="****************" />
                                         </div>
+
+                                        {!isCloudOnline && (
+                                            <button onClick={forceReconnect} className="w-full border border-white/20 text-dim hover:text-white hover:border-white py-3 text-xs tracking-widest transition-colors flex items-center justify-center gap-2">
+                                                <Icon d={icons.refresh} /> FORCE RECONNECT
+                                            </button>
+                                        )}
+
                                         <button onClick={() => setShowSettings(false)} className="w-full bg-white text-black font-bold py-3 text-xs tracking-[0.2em] hover:bg-gray-200 transition-colors">TERMINATE</button>
                                     </div>
                                 )}
