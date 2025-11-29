@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;800&family=Orbitron:wght@500;900&display=swap" rel="stylesheet">
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -27,33 +27,22 @@
             theme: {
                 extend: {
                     colors: {
-                        bg: '#030508',
-                        card: 'rgba(20, 20, 25, 0.4)',
-                        border: 'rgba(255, 255, 255, 0.1)',
-                        neon: '#6366f1', // Indigo
-                        accent: '#a855f7', // Purple
+                        bg: '#050505',
+                        panel: '#0a0a0a',
+                        fg: '#e5e5e5',
+                        dim: '#525252',
+                        accent: '#ffffff',
                     },
                     fontFamily: {
-                        sans: ['Noto Sans TC', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
+                        display: ['Orbitron', 'sans-serif'],
                     },
                     animation: {
-                        'blob': 'blob 10s infinite',
-                        'cursor': 'cursor .75s step-end infinite',
-                        'fade-up': 'fadeUp 0.8s ease-out forwards',
+                        'slide-up': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
-                        blob: {
-                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
-                        },
-                        cursor: {
-                            '0%, 100%': { opacity: '1' },
-                            '50%': { opacity: '0' },
-                        },
-                        fadeUp: {
+                        slideUp: {
                             '0%': { opacity: '0', transform: 'translateY(20px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
                         }
@@ -65,44 +54,56 @@
 
     <style>
         body { 
-            background-color: #030508; 
-            color: #e5e7eb; 
+            background-color: #050505; 
+            color: #e5e5e5; 
             overflow-x: hidden;
+            font-family: 'JetBrains Mono', monospace;
         }
-        .spotlight {
-            background: radial-gradient(600px circle at var(--x) var(--y), rgba(99, 102, 241, 0.06), transparent 40%);
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;
+        
+        /* Canvas Background Layer */
+        #particle-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;
         }
-        .grid-bg {
-            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+
+        /* Glass Card */
+        .glass-item {
+            position: relative;
+            background: rgba(15, 15, 15, 0.4);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow: hidden;
         }
-        .glass-card {
-            background: rgba(20, 20, 25, 0.4);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        /* Hover Effect: Scale & Border Light */
+        .glass-item:hover {
+            background: rgba(25, 25, 25, 0.6);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.01) translateX(5px);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
         }
-        .glass-card:hover {
-            border-color: rgba(99, 102, 241, 0.5);
-            background: rgba(30, 30, 40, 0.6);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.2);
+
+        /* Scan Line Sweep Effect */
+        .glass-item::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+            transform: skewX(-25deg);
+            transition: 0.5s;
+            pointer-events: none;
         }
-        .shimmer-border {
-            position: absolute; inset: 0; pointer-events: none; border-radius: 0.75rem; padding: 1px;
-            background: linear-gradient(45deg, transparent 40%, rgba(168, 85, 247, 0.5) 50%, transparent 60%);
-            background-size: 200% 200%;
-            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor; mask-composite: exclude;
-            opacity: 0; transition: opacity 0.3s;
+        .glass-item:hover::after {
+            left: 200%;
+            transition: 0.7s ease-in-out;
         }
-        .glass-card:hover .shimmer-border { opacity: 1; animation: shimmer 2s linear infinite; }
-        @keyframes shimmer { from { background-position: 100% 100%; } to { background-position: 0% 0%; } }
+
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #030508; }
+        ::-webkit-scrollbar-track { background: #050505; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
     </style>
 </head>
 <body>
@@ -111,204 +112,196 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- Config ---
         const TARGET_USER = 'fengfeng1021'; 
 
         // --- Icons ---
-        const Icon = ({ d, size = 18, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: d }} />
+        const Icon = ({ d, size = 16, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter" className={className} dangerouslySetInnerHTML={{ __html: d }} />
         );
         const icons = {
-            settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
-            link: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
-            sparkles: '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3z"/>',
+            arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
             search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
-            edit: '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
-            arrow: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>'
+            settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+            sparkles: '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3z"/>',
+            edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'
         };
 
-        const useMousePosition = () => {
-            const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-            useEffect(() => {
-                const updateMousePosition = ev => setMousePosition({ x: ev.clientX, y: ev.clientY });
-                window.addEventListener('mousemove', updateMousePosition);
-                return () => window.removeEventListener('mousemove', updateMousePosition);
-            }, []);
-            return mousePosition;
-        };
+        // --- Particle Background Component ---
+        const ParticleBackground = () => {
+            const canvasRef = useRef(null);
 
-        const useTypewriter = (text, speed = 100) => {
-            const [displayText, setDisplayText] = useState('');
             useEffect(() => {
-                let i = 0;
-                setDisplayText('');
-                const timer = setInterval(() => {
-                    if (i < text.length) {
-                        setDisplayText(prev => prev + text.charAt(i));
-                        i++;
-                    } else {
-                        clearInterval(timer);
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationFrameId;
+                let particles = [];
+
+                const resize = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                window.addEventListener('resize', resize);
+                resize();
+
+                class Particle {
+                    constructor() {
+                        this.x = Math.random() * canvas.width;
+                        this.y = Math.random() * canvas.height + canvas.height; // Start from bottom
+                        this.speed = Math.random() * 0.5 + 0.1;
+                        this.size = Math.random() * 1.5 + 0.5;
+                        this.opacity = Math.random() * 0.5 + 0.1;
                     }
-                }, speed);
-                return () => clearInterval(timer);
-            }, [text]);
-            return displayText;
+                    update() {
+                        this.y -= this.speed;
+                        if (this.y < -10) {
+                            this.y = canvas.height + 10;
+                            this.x = Math.random() * canvas.width;
+                        }
+                    }
+                    draw() {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                // Initialize
+                for (let i = 0; i < 100; i++) particles.push(new Particle());
+
+                const animate = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Draw connections (optional subtle lines)
+                    // Simplified for performance: just dots
+                    particles.forEach(p => {
+                        p.update();
+                        p.draw();
+                    });
+
+                    animationFrameId = requestAnimationFrame(animate);
+                };
+                animate();
+
+                return () => {
+                    window.removeEventListener('resize', resize);
+                    cancelAnimationFrame(animationFrameId);
+                };
+            }, []);
+
+            return <canvas ref={canvasRef} id="particle-canvas" />;
         };
 
         const App = () => {
-            const { x, y } = useMousePosition();
-            const titleText = useTypewriter("鋒鋒的網頁導覽", 150);
-            
             // State
-            const [user, setUser] = useState(null); // Auth User State
-            const [adminKey, setAdminKey] = useState('');
-            const [isAdmin, setIsAdmin] = useState(false);
             const [repos, setRepos] = useState([]);
             const [cloudData, setCloudData] = useState({});
-            const [status, setStatus] = useState('loading');
-            const [aiStatus, setAiStatus] = useState('idle');
             const [searchTerm, setSearchTerm] = useState('');
+            const [adminKey, setAdminKey] = useState('');
             const [showSettings, setShowSettings] = useState(false);
-            const [editingId, setEditingId] = useState(null);
-            const [editTitle, setEditTitle] = useState('');
-            const [editDesc, setEditDesc] = useState('');
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [aiStatus, setAiStatus] = useState('idle');
+            const [editTarget, setEditTarget] = useState(null);
             
+            // Firebase Refs
             const [db, setDb] = useState(null);
+            const [user, setUser] = useState(null);
 
-            // 1. Init Auth (Priority)
+            // Init Logic
             useEffect(() => {
-                const initAuth = async () => {
-                    if (!window.firebaseModules) return;
-                    const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore } = window.firebaseModules;
-                    
-                    const app = initializeApp(JSON.parse(__firebase_config));
-                    const auth = getAuth(app);
-                    const firestore = getFirestore(app);
-                    setDb(firestore);
+                const savedKey = localStorage.getItem('nexus_admin_key');
+                if(savedKey) { setAdminKey(savedKey); setIsAdmin(true); }
 
-                    // Auth Flow
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        try {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } catch (e) {
-                            console.warn("Custom token fail, fallback anon", e);
-                            await signInAnonymously(auth);
-                        }
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-
-                    // Listener for Auth State
-                    onAuthStateChanged(auth, (u) => {
-                        if (u) {
-                            setUser(u);
-                            // Once user is set, data loading will trigger via effect
-                        }
-                    });
-
-                    // Local Admin Key
-                    const savedKey = localStorage.getItem('nexus_admin_key');
-                    if (savedKey) { setAdminKey(savedKey); setIsAdmin(true); }
-                };
-                initAuth();
-            }, []);
-
-            // 2. Data Sync Effect (Runs only when user & db are ready)
-            useEffect(() => {
-                if (!user || !db) return;
-
-                // A. Setup Cloud Listener
-                const { doc, onSnapshot } = window.firebaseModules;
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
-                
-                // Correct Path: artifacts/{appId}/public/data/nexus_profiles/{username}
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase());
-                
-                const unsubscribe = onSnapshot(docRef, (snap) => {
-                    if (snap.exists()) {
-                        setCloudData(snap.data().repos || {});
-                    }
-                }, (err) => {
-                    console.error("Firestore Listen Error:", err);
-                });
-
-                // B. Fetch GitHub Data
-                const fetchGitHub = async () => {
-                    try {
-                        const res = await fetch(`https://api.github.com/users/${TARGET_USER}/repos?sort=updated&per_page=100&type=owner`);
-                        if (!res.ok) throw new Error("GitHub Error");
-                        const data = await res.json();
-                        if(!Array.isArray(data)) return;
-                        
-                        const hidden = ['hub', 'nav', `${TARGET_USER.toLowerCase()}.github.io`, 'fengfeng1021.github.io'];
-                        const list = data
-                            .filter(r => r.has_pages)
-                            .filter(r => !hidden.includes(r.name.toLowerCase()))
-                            .map(r => ({
-                                id: r.id,
-                                name: r.name,
-                                desc: r.description,
-                                url: r.homepage || `https://${TARGET_USER}.github.io/${r.name}`,
-                                date: r.updated_at.split('T')[0]
-                            }));
-                        setRepos(list);
-                        setStatus('ready');
-                    } catch (e) {
-                        console.error(e);
-                        setStatus('error');
-                    }
-                };
+                // 1. Fetch GitHub
                 fetchGitHub();
 
-                return () => unsubscribe(); // Cleanup listener on unmount
+                // 2. Init Firebase
+                if(window.firebaseModules) {
+                    try {
+                        const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, onAuthStateChanged } = window.firebaseModules;
+                        const app = initializeApp(JSON.parse(__firebase_config));
+                        const auth = getAuth(app);
+                        const firestore = getFirestore(app);
+                        setDb(firestore);
+                        
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
+                        } else {
+                            signInAnonymously(auth);
+                        }
+                        onAuthStateChanged(auth, u => u && setUser(u));
+                    } catch(e) { console.warn("Firebase Offline"); }
+                }
+            }, []);
+
+            // Firestore Listener
+            useEffect(() => {
+                if(!user || !db) return;
+                const { doc, onSnapshot } = window.firebaseModules;
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
+                const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase()), 
+                    (snap) => { if(snap.exists()) setCloudData(snap.data().repos || {}); },
+                    (err) => console.warn("Read-only mode")
+                );
+                return () => unsub();
             }, [user, db]);
 
+            const fetchGitHub = async () => {
+                try {
+                    const res = await fetch(`https://api.github.com/users/${TARGET_USER}/repos?sort=updated&per_page=100&type=owner`);
+                    const data = await res.json();
+                    if(!Array.isArray(data)) return;
+                    
+                    const hidden = ['hub', 'nav', `${TARGET_USER.toLowerCase()}.github.io`, 'fengfeng1021.github.io'];
+                    setRepos(data.filter(r => r.has_pages && !hidden.includes(r.name.toLowerCase())).map(r => ({
+                        id: r.id, name: r.name, desc: r.description,
+                        url: r.homepage || `https://${TARGET_USER}.github.io/${r.name}`,
+                        date: r.updated_at.split('T')[0]
+                    })));
+                } catch(e) {}
+            };
+
             const saveToCloud = async (newData) => {
-                if (!db || !user) return;
+                if(!db || !user) return alert("Cloud Offline");
                 const { doc, setDoc } = window.firebaseModules;
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase()), {
-                        repos: newData,
-                        lastUpdate: new Date().toISOString()
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase()), { 
+                        repos: newData 
                     }, { merge: true });
-                    // setCloudData is handled by snapshot listener
-                } catch(e) { alert("Save Error: " + e.message); }
+                } catch(e) { alert("Save Failed: " + e.message); }
             };
 
             const runAI = async () => {
-                if (!adminKey) return;
-                const targets = repos.filter(r => !cloudData[r.id]);
-                if (!targets.length) { alert("所有專案皆已命名"); return; }
-                
+                if(!adminKey) return;
                 setAiStatus('processing');
+                
+                const targets = repos.filter(r => !cloudData[r.id]);
+                if(!targets.length) { setAiStatus('idle'); return alert("No new targets"); }
+
                 const items = targets.map(r => `ID:${r.id}|${r.name}|${r.desc||''}`).join('\n');
-                const prompt = `Rename GitHub projects for a portfolio. Language: Traditional Chinese (Taiwan). Style: Professional & Cool. Input:\n${items}\nOutput JSON Array: [{"id": 123, "title": "...", "desc": "..."}]`;
+                const prompt = `Rename GitHub projects for a minimalist tech portfolio. Language: Traditional Chinese (Taiwan). Style: Cool, Cyberpunk, Professional. Input:\n${items}\nOutput JSON: [{"id": 123, "title": "...", "desc": "..."}]`;
 
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${adminKey}`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
                     const json = await res.json();
                     const txt = json.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
                     const results = JSON.parse(txt.match(/\[.*\]/s)[0]);
-
-                    const newData = { ...cloudData };
-                    results.forEach(r => newData[r.id] = { title: r.title, desc: r.desc, isAI: true });
                     
-                    await saveToCloud(newData);
-                    setAiStatus('done');
-                } catch (e) { alert("AI Error"); }
-                setTimeout(() => setAiStatus('idle'), 1000);
+                    const newData = { ...cloudData };
+                    results.forEach(r => newData[r.id] = { title: r.title, desc: r.desc });
+                    saveToCloud(newData);
+                } catch(e) { alert("AI Error"); }
+                setAiStatus('idle');
             };
 
-            const handleEditSave = async () => {
-                if (!editingId) return;
-                const newData = { ...cloudData, [editingId]: { title: editTitle, desc: editDesc, isAI: false } };
-                await saveToCloud(newData);
-                setEditingId(null);
+            const saveEdit = () => {
+                const newData = { ...cloudData, [editTarget.id]: { title: editTarget.title, desc: editTarget.desc } };
+                saveToCloud(newData);
+                setEditTarget(null);
             };
 
             const filtered = repos.filter(r => {
@@ -317,170 +310,118 @@
             });
 
             return (
-                <div className="min-h-screen relative font-sans text-gray-300 selection:bg-neon selection:text-white">
-                    {/* Background Effects */}
-                    <div className="fixed inset-0 bg-bg -z-20"></div>
-                    <div className="fixed inset-0 grid-bg -z-10 opacity-30"></div>
-                    <div className="spotlight" style={{ '--x': `${x}px`, '--y': `${y}px` }}></div>
-                    <div className="fixed top-[-20%] left-[-10%] w-[600px] h-[600px] bg-purple-900/20 rounded-full blur-[120px] animate-blob -z-10"></div>
-                    <div className="fixed bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-indigo-900/20 rounded-full blur-[120px] animate-blob -z-10"></div>
-
-                    {/* Navbar */}
-                    <nav className="fixed top-0 w-full z-50 backdrop-blur-md border-b border-white/5 bg-bg/50">
-                        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-neon to-accent flex items-center justify-center text-white font-bold font-mono shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-                                    FF
-                                </div>
-                                <div className="hidden md:block">
-                                    <h1 className="text-white font-bold text-sm tracking-wider">FENGFENG</h1>
-                                    <p className="text-[10px] text-gray-500 font-mono">SYSTEM.ONLINE</p>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-4">
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-neon transition-colors">
-                                        <Icon d={icons.search} />
-                                    </div>
-                                    <input 
-                                        value={searchTerm} 
-                                        onChange={e => setSearchTerm(e.target.value)} 
-                                        className="bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-neon/50 focus:bg-white/10 transition-all w-40 focus:w-64 placeholder-gray-600"
-                                        placeholder="Search..."
-                                    />
-                                </div>
-                                <button onClick={() => setShowSettings(true)} className="text-gray-600 hover:text-white transition-colors p-2">
-                                    <Icon d={icons.settings} />
-                                </button>
-                            </div>
+                <div className="min-h-screen relative z-10 flex flex-col">
+                    <ParticleBackground />
+                    
+                    {/* Header Section */}
+                    <div className="pt-20 pb-10 px-6 max-w-3xl mx-auto w-full text-center relative z-20">
+                        <div className="mb-2 text-[10px] text-dim tracking-[0.6em] font-bold uppercase animate-pulse-slow">
+                            SYSTEM.ROOT // USER: FENGFENG
                         </div>
-                    </nav>
-
-                    {/* Hero Section */}
-                    <div className="pt-32 pb-16 px-6 max-w-7xl mx-auto text-center relative">
-                        <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight min-h-[4rem]">
-                            {titleText}<span className="animate-cursor text-neon">_</span>
+                        <h1 className="text-4xl md:text-6xl font-display font-black text-white tracking-tight uppercase mb-8 leading-tight">
+                            鋒鋒的網頁導覽
                         </h1>
-                        <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed animate-fade-up" style={{animationDelay: '0.5s'}}>
-                            歡迎來到我的數位實驗室。這裡彙整了我所有的 Web 專案、工具與實驗性作品。
-                            <br/><span className="text-sm text-gray-600 font-mono mt-2 block">POWERED BY GITHUB & GEMINI AI</span>
-                        </p>
-                        
-                        {isAdmin && (
-                            <div className="mt-8 animate-fade-up" style={{animationDelay: '0.8s'}}>
-                                <button onClick={runAI} disabled={aiStatus !== 'idle'} className="bg-white/5 border border-white/10 px-6 py-2 rounded-full text-sm font-bold hover:bg-neon hover:text-white hover:border-neon transition-all flex items-center gap-2 mx-auto">
-                                    {aiStatus === 'processing' ? <span className="animate-spin">◌</span> : <Icon d={icons.sparkles}/>}
-                                    {aiStatus === 'processing' ? '正在分析專案...' : '執行 AI 智慧命名'}
-                                </button>
-                            </div>
-                        )}
+                        <div className="h-px w-24 bg-white/20 mx-auto"></div>
                     </div>
 
-                    {/* Grid */}
-                    <div className="max-w-7xl mx-auto px-6 pb-24">
-                        {status === 'loading' && <div className="text-center py-20 text-gray-600 font-mono animate-pulse">LOADING DATA...</div>}
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Controls */}
+                    <div className="sticky top-0 z-30 bg-[#050505]/80 backdrop-blur-md border-b border-white/5 py-4">
+                        <div className="max-w-3xl mx-auto px-6 flex justify-between items-center gap-4">
+                            <div className="relative flex-1 group">
+                                <Icon d={icons.search} className="absolute left-0 top-1/2 -translate-y-1/2 text-dim group-focus-within:text-white transition-colors" />
+                                <input 
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="w-full bg-transparent border-none text-sm text-white placeholder-dim pl-8 focus:outline-none font-mono uppercase tracking-wider h-10"
+                                    placeholder="SEARCH PROTOCOL..."
+                                />
+                            </div>
+                            <button onClick={() => setShowSettings(true)} className="text-dim hover:text-white p-2 transition-colors">
+                                <Icon d={icons.settings} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Admin Actions */}
+                    {isAdmin && (
+                        <div className="max-w-3xl mx-auto px-6 py-4 flex justify-end">
+                            <button onClick={runAI} disabled={aiStatus !== 'idle'} className="text-[10px] border border-white/10 hover:border-white text-dim hover:text-white px-3 py-1.5 rounded transition-all flex items-center gap-2">
+                                {aiStatus === 'processing' ? 'PROCESSING...' : <><Icon d={icons.sparkles} size={10}/> RUN AI SYNC</>}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Main List */}
+                    <div className="max-w-3xl mx-auto px-6 py-8 w-full flex-1">
+                        <div className="flex flex-col gap-3">
+                            {filtered.length === 0 && <div className="text-dim font-mono text-center py-20 tracking-widest text-xs">INITIALIZING...</div>}
+                            
                             {filtered.map((r, i) => {
-                                const info = cloudData[r.id] || { title: r.name, desc: r.desc || 'No description available', isAI: false };
+                                const info = cloudData[r.id] || { title: r.name, desc: r.desc || 'No Data' };
                                 
                                 return (
-                                    <div key={r.id} className="glass-card rounded-xl p-6 relative group h-56 flex flex-col justify-between animate-fade-up" style={{animationDelay: `${i * 0.05}s`}}>
-                                        <div className="shimmer-border"></div>
+                                    <div key={r.id} className="glass-item group p-6 rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-4 opacity-0 animate-slide-up" style={{animationDelay: `${i*0.05}s`}}>
                                         
-                                        <div>
-                                            <div className="flex justify-between items-start mb-4">
-                                                <h3 className="text-xl font-bold text-white group-hover:text-neon transition-colors line-clamp-1">
+                                        <div className="flex-1 min-w-0 relative z-10">
+                                            <div className="flex items-center gap-3 mb-1.5">
+                                                <h3 className="text-lg text-white font-bold tracking-wide group-hover:text-white transition-colors truncate font-display">
                                                     {info.title}
                                                 </h3>
-                                                <Icon d={icons.link} className="text-gray-600 group-hover:text-white transition-colors" />
+                                                {isAdmin && (
+                                                    <button onClick={() => setEditTarget({id: r.id, title: info.title, desc: info.desc})} className="text-dim hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Icon d={icons.edit} size={12} />
+                                                    </button>
+                                                )}
                                             </div>
-                                            <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
+                                            <p className="text-xs text-dim font-mono uppercase tracking-tight truncate max-w-xl group-hover:text-gray-400 transition-colors">
                                                 {info.desc}
                                             </p>
                                         </div>
 
-                                        <div className="flex items-end justify-between border-t border-white/5 pt-4 mt-4">
-                                            <div className="flex gap-2">
-                                                <span className="text-[10px] font-mono text-gray-600 bg-white/5 px-2 py-1 rounded">
-                                                    {r.date}
-                                                </span>
-                                                {info.isAI && <span className="text-[10px] font-mono text-neon border border-neon/20 px-2 py-1 rounded">AI</span>}
-                                            </div>
-                                            <a href={r.url} target="_blank" className="flex items-center gap-1 text-xs font-bold text-white opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                                                LAUNCH <Icon d={icons.arrow} size={12} />
+                                        <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-white/10 pt-4 md:pt-0 mt-2 md:mt-0 relative z-10">
+                                            <span className="text-[10px] text-dim font-mono">{r.date.replace(/-/g, '.')}</span>
+                                            <a href={r.url} target="_blank" className="flex items-center gap-2 text-xs font-bold text-white group-hover:underline decoration-1 underline-offset-4 decoration-dim">
+                                                OPEN <Icon d={icons.arrowRight} className="transition-transform group-hover:translate-x-1" size={12} />
                                             </a>
                                         </div>
-
-                                        {isAdmin && (
-                                            <button 
-                                                onClick={(e) => { e.preventDefault(); setEditingId(r.id); setEditTitle(info.title); setEditDesc(info.desc); }}
-                                                className="absolute top-4 right-12 text-gray-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all p-1"
-                                            >
-                                                <Icon d={icons.edit} />
-                                            </button>
-                                        )}
-                                        
-                                        <a href={r.url} target="_blank" className="absolute inset-0 z-0"></a>
                                     </div>
                                 )
                             })}
                         </div>
                     </div>
 
-                    {/* Admin Settings Modal */}
-                    {showSettings && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowSettings(false)}>
-                            <div className="glass-card w-full max-w-sm p-6 rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
-                                <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                                    <Icon d={icons.settings} /> 管理員設定
-                                </h3>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-xs text-gray-500 block mb-1">GEMINI API KEY</label>
-                                        <input 
-                                            type="password" 
-                                            value={adminKey}
-                                            onChange={e => {
-                                                setAdminKey(e.target.value);
-                                                setIsAdmin(!!e.target.value);
-                                                localStorage.setItem('nexus_admin_key', e.target.value);
-                                            }}
-                                            placeholder="輸入 Key 以啟用編輯功能"
-                                            className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-neon outline-none transition-colors"
-                                        />
-                                    </div>
-                                    <p className="text-[10px] text-gray-600">
-                                        * Key 僅儲存於本地瀏覽器，用於 AI 分析與寫入資料庫。<br/>
-                                        * 訪客無法看到此畫面或使用編輯功能。
-                                    </p>
-                                </div>
-                            </div>
+                    {/* Footer */}
+                    <div className="py-10 text-center">
+                        <div className="text-[10px] text-dim font-mono uppercase tracking-[0.2em] opacity-50">
+                            System Status: Operational • {repos.length} Nodes
                         </div>
-                    )}
+                    </div>
 
-                    {/* Edit Modal */}
-                    {editingId && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                            <div className="glass-card w-full max-w-md p-6 rounded-2xl shadow-2xl">
-                                <h3 className="text-white font-bold mb-6">手動編輯專案</h3>
-                                <input 
-                                    value={editTitle} 
-                                    onChange={e => setEditTitle(e.target.value)} 
-                                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white mb-3 focus:border-accent outline-none font-bold"
-                                    placeholder="專案標題"
-                                />
-                                <textarea 
-                                    value={editDesc} 
-                                    onChange={e => setEditDesc(e.target.value)} 
-                                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white mb-6 h-32 resize-none focus:border-accent outline-none text-sm leading-relaxed"
-                                    placeholder="專案描述..."
-                                />
-                                <div className="flex gap-3">
-                                    <button onClick={() => setEditingId(null)} className="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors">取消</button>
-                                    <button onClick={handleEditSave} className="flex-1 py-2 rounded-lg bg-neon text-white font-bold hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">保存修改</button>
-                                </div>
+                    {/* Modals */}
+                    {(showSettings || editTarget) && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg" onClick={() => { setShowSettings(false); setEditTarget(null); }}>
+                            <div className="bg-black border border-white/20 p-8 max-w-md w-full relative shadow-[0_0_80px_rgba(255,255,255,0.05)]" onClick={e => e.stopPropagation()}>
+                                {showSettings && (
+                                    <div className="space-y-6">
+                                        <h2 className="text-lg font-display font-bold text-white border-b border-white/10 pb-2 tracking-widest">CONSOLE</h2>
+                                        <div>
+                                            <label className="text-[10px] text-dim block mb-2 font-mono tracking-widest">ACCESS KEY</label>
+                                            <input type="password" value={adminKey} onChange={e => { setAdminKey(e.target.value); setIsAdmin(!!e.target.value); localStorage.setItem('nexus_admin_key', e.target.value); }} className="w-full bg-white/5 border border-white/10 p-3 text-white text-xs font-mono outline-none focus:border-white transition-colors tracking-widest" placeholder="****************" />
+                                        </div>
+                                        <button onClick={() => setShowSettings(false)} className="w-full bg-white text-black font-bold py-3 text-xs tracking-[0.2em] hover:bg-gray-200 transition-colors">TERMINATE</button>
+                                    </div>
+                                )}
+                                {editTarget && (
+                                    <div className="space-y-6">
+                                        <h2 className="text-lg font-display font-bold text-white border-b border-white/10 pb-2 tracking-widest">EDIT NODE</h2>
+                                        <input value={editTarget.title} onChange={e => setEditTarget({...editTarget, title: e.target.value})} className="w-full bg-white/5 border border-white/10 p-3 text-white font-bold outline-none focus:border-white transition-colors" />
+                                        <textarea value={editTarget.desc} onChange={e => setEditTarget({...editTarget, desc: e.target.value})} className="w-full bg-white/5 border border-white/10 p-3 text-white text-xs font-mono outline-none focus:border-white transition-colors h-24 resize-none" />
+                                        <div className="flex gap-3">
+                                            <button onClick={() => setEditTarget(null)} className="flex-1 border border-white/20 text-dim py-3 text-xs hover:text-white hover:border-white tracking-widest transition-colors">CANCEL</button>
+                                            <button onClick={saveEdit} className="flex-1 bg-white text-black font-bold py-3 text-xs hover:bg-gray-200 tracking-widest transition-colors">SAVE</button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
