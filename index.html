@@ -17,9 +17,10 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-        window.firebaseModules = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, setDoc, onSnapshot };
+        
+        window.firebaseModules = { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore, doc, setDoc, onSnapshot };
     </script>
 
     <script>
@@ -28,26 +29,25 @@
                 extend: {
                     colors: {
                         bg: '#050505',
+                        panel: '#0a0a0a',
                         fg: '#e5e5e5',
                         dim: '#525252',
                         accent: '#ffffff',
+                        success: '#10b981',
+                        error: '#ef4444',
                     },
                     fontFamily: {
                         mono: ['JetBrains Mono', 'monospace'],
                         display: ['Orbitron', 'sans-serif'],
                     },
                     animation: {
-                        'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
-                        'flash': 'flash 0.5s ease-out',
+                        'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         fadeInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '0%': { opacity: '0', transform: 'translateY(15px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                        flash: {
-                            '0%': { borderColor: '#10b981', boxShadow: '0 0 20px #10b981' },
-                            '100%': { borderColor: 'rgba(255,255,255,0.08)', boxShadow: 'none' },
                         }
                     }
                 }
@@ -57,8 +57,9 @@
 
     <style>
         body { background-color: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; overflow-x: hidden; }
-        #particle-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
         
+        #particle-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
         .glass-item {
             position: relative; 
             background: rgba(15, 15, 15, 0.6); 
@@ -71,6 +72,7 @@
             background: rgba(30, 30, 30, 0.8); 
             border-color: rgba(255, 255, 255, 0.4);
             transform: translateX(5px);
+            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.5);
         }
         .glass-item::after {
             content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
@@ -78,9 +80,6 @@
             transform: skewX(-25deg); transition: 0.5s; pointer-events: none;
         }
         .glass-item:hover::after { left: 200%; transition: 0.7s ease-in-out; }
-
-        /* Save Success Animation */
-        .saved-flash { animation: flash 1s ease-out !important; }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #050505; }
@@ -95,13 +94,24 @@
 
         const TARGET_USER = 'fengfeng1021'; 
 
+        // --- Firebase Config (您提供的) ---
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyBN3dWqe02UqFmWj8qVUbwOvzj9OhniwLA",
+            authDomain: "webhub-413d5.firebaseapp.com",
+            projectId: "webhub-413d5",
+            storageBucket: "webhub-413d5.firebasestorage.app",
+            messagingSenderId: "856920728490",
+            appId: "1:856920728490:web:026d6d23543db58ccc81d3",
+            measurementId: "G-62WL1MBDJ6"
+        };
+
         const Icon = ({ d, size = 16, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter" className={className} dangerouslySetInnerHTML={{ __html: d }} />
         );
         const icons = {
             arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
             search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
-            settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+            settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
             sparkles: '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3z"/>',
             edit: '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>'
         };
@@ -154,113 +164,126 @@
             const [repos, setRepos] = useState([]);
             const [cloudData, setCloudData] = useState({});
             const [searchTerm, setSearchTerm] = useState('');
-            const [apiKey, setApiKey] = useState('');
+            const [isLoading, setIsLoading] = useState(true);
+            const [adminKey, setAdminKey] = useState('');
             const [showSettings, setShowSettings] = useState(false);
-            const [aiStatus, setAiStatus] = useState('idle');
             const [editTarget, setEditTarget] = useState(null);
-            const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'success', 'error'
+            const [aiStatus, setAiStatus] = useState('idle');
             
-            // Firebase Refs
+            // System State
             const [db, setDb] = useState(null);
             const [user, setUser] = useState(null);
+            const [dbStatus, setDbStatus] = useState('connecting');
 
-            // 1. Init System
+            // 1. Initialization
             useEffect(() => {
-                // Fetch GitHub First
-                fetchGitHub();
+                const init = async () => {
+                    fetchGitHub();
+                    const savedKey = localStorage.getItem('nexus_api_key');
+                    if(savedKey) setAdminKey(savedKey);
 
-                // Load API Key
-                const savedKey = localStorage.getItem('nexus_api_key');
-                if(savedKey) setApiKey(savedKey);
+                    // Initialize Firebase with YOUR Config
+                    if (window.firebaseModules) {
+                        try {
+                            const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, getFirestore } = window.firebaseModules;
+                            const app = initializeApp(FIREBASE_CONFIG);
+                            const auth = getAuth(app);
+                            const firestore = getFirestore(app);
+                            setDb(firestore);
 
-                // Init Firebase
-                if(window.firebaseModules) {
-                    try {
-                        const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, onAuthStateChanged } = window.firebaseModules;
-                        const app = initializeApp(JSON.parse(__firebase_config));
-                        const auth = getAuth(app);
-                        const firestore = getFirestore(app);
-                        setDb(firestore);
-                        
-                        // Robust Auth
-                        const doAuth = async () => {
-                            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                                await signInWithCustomToken(auth, __initial_auth_token).catch(() => signInAnonymously(auth));
-                            } else {
-                                await signInAnonymously(auth);
-                            }
-                        };
-                        doAuth();
-
-                        onAuthStateChanged(auth, u => { if(u) setUser(u); });
-                    } catch(e) { console.warn("Cloud offline"); }
-                }
+                            // Silent Auth
+                            await signInAnonymously(auth);
+                            
+                            onAuthStateChanged(auth, (u) => {
+                                if (u) {
+                                    setUser(u);
+                                    setDbStatus('online');
+                                    syncFirestore(firestore);
+                                } else {
+                                    setDbStatus('offline');
+                                }
+                            });
+                        } catch (e) {
+                            console.warn("Firebase Init Error:", e);
+                            setDbStatus('error');
+                        }
+                    }
+                };
+                init();
             }, []);
 
             // 2. Sync Logic
-            useEffect(() => {
-                if(!user || !db) return;
+            const syncFirestore = (firestore) => {
                 const { doc, onSnapshot } = window.firebaseModules;
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
-                const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase()), 
-                    (snap) => { if(snap.exists()) setCloudData(snap.data().repos || {}); }
-                );
-                return () => unsub();
-            }, [user, db]);
+                // Path: nexus_portfolios/fengfeng1021
+                const docRef = doc(firestore, 'nexus_portfolios', TARGET_USER.toLowerCase());
+                
+                onSnapshot(docRef, (snap) => {
+                    if (snap.exists()) setCloudData(snap.data().repos || {});
+                }, (err) => {
+                    console.warn("Permission Error", err);
+                    setDbStatus('read-only');
+                });
+            };
 
             const fetchGitHub = async () => {
+                setIsLoading(true);
                 try {
                     const res = await fetch(`https://api.github.com/users/${TARGET_USER}/repos?sort=updated&per_page=100&type=owner`);
                     const data = await res.json();
-                    if(!Array.isArray(data)) return;
-                    
+                    if (!Array.isArray(data)) return;
+
                     const hidden = ['hub', 'nav', `${TARGET_USER.toLowerCase()}.github.io`, 'fengfeng1021.github.io'];
-                    setRepos(data.filter(r => r.has_pages && !hidden.includes(r.name.toLowerCase())).map(r => ({
-                        id: r.id, name: r.name, desc: r.description,
-                        url: r.homepage || `https://${TARGET_USER}.github.io/${r.name}`,
-                        date: r.updated_at.split('T')[0]
-                    })));
-                } catch(e) {}
+                    const list = data
+                        .filter(r => r.has_pages)
+                        .filter(r => !hidden.includes(r.name.toLowerCase()))
+                        .map(r => ({
+                            id: r.id, name: r.name, desc: r.description,
+                            url: r.homepage || `https://${TARGET_USER}.github.io/${r.name}`,
+                            date: r.updated_at.split('T')[0]
+                        }));
+                    setRepos(list);
+                } catch (e) { console.error(e); } 
+                finally { setIsLoading(false); }
             };
 
             const saveToCloud = async (newData) => {
-                if(!db) return alert("System Offline");
-                
-                // Force Auth check
-                if(!user) {
-                    try {
-                        const { getAuth, signInAnonymously } = window.firebaseModules;
-                        await signInAnonymously(getAuth());
-                    } catch(e) { return alert("連線失敗，無法儲存"); }
-                }
-
+                if (!db || !user) return alert("資料庫連線中，請稍後...");
                 const { doc, setDoc } = window.firebaseModules;
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
                 
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER.toLowerCase()), { 
+                    await setDoc(doc(db, 'nexus_portfolios', TARGET_USER.toLowerCase()), {
                         repos: newData,
                         lastUpdate: new Date().toISOString()
                     }, { merge: true });
                     
-                    setCloudData(newData); // Immediate UI update
-                    setSaveStatus('success');
-                    setTimeout(() => setSaveStatus(null), 1000);
-                } catch(e) { alert("儲存失敗: " + e.message); }
+                    setCloudData(newData);
+                    setEditTarget(null);
+                } catch (e) {
+                    alert("儲存失敗: " + e.message + "\n請確認 Firebase Rules 是否允許寫入。");
+                }
+            };
+
+            const handleManualSave = () => {
+                if (!editTarget) return;
+                const newData = { 
+                    ...cloudData, 
+                    [editTarget.id]: { title: editTarget.title, desc: editTarget.desc } 
+                };
+                saveToCloud(newData);
             };
 
             const runAI = async () => {
-                if(!apiKey) return alert("請先在設定中輸入 API Key");
-                setAiStatus('processing');
-                
+                if (!adminKey) return alert("請先輸入 API Key");
                 const targets = repos.filter(r => !cloudData[r.id]);
-                if(!targets.length) { setAiStatus('idle'); return alert("所有專案都已有標題"); }
+                if (targets.length === 0) return alert("無需更新");
 
+                setAiStatus('processing');
                 const items = targets.map(r => `ID:${r.id}|${r.name}|${r.desc||''}`).join('\n');
-                const prompt = `Rename GitHub projects. Language: Traditional Chinese (Taiwan). Style: Cool, Professional. Input:\n${items}\nOutput JSON Array: [{"id": 123, "title": "...", "desc": "..."}]`;
+                const prompt = `Rename GitHub projects. Traditional Chinese (Taiwan). Style: Professional. Input:\n${items}\nOutput JSON Array: [{"id": 123, "title": "...", "desc": "..."}]`;
 
                 try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${adminKey}`, {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
@@ -275,12 +298,6 @@
                 setAiStatus('idle');
             };
 
-            const saveEdit = () => {
-                const newData = { ...cloudData, [editTarget.id]: { title: editTarget.title, desc: editTarget.desc } };
-                saveToCloud(newData);
-                setEditTarget(null);
-            };
-
             const filtered = repos.filter(r => {
                 const info = cloudData[r.id] || { title: r.name };
                 return info.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -292,10 +309,11 @@
                     
                     {/* Header */}
                     <div className="pt-20 pb-10 px-6 max-w-3xl mx-auto w-full text-center relative z-20">
-                        <div className="mb-4 text-[10px] text-dim tracking-[0.6em] font-bold uppercase">
-                            SYSTEM.ROOT // USER: FENGFENG
+                        <div className="mb-4 text-[10px] text-dim tracking-[0.6em] font-bold uppercase flex items-center justify-center gap-2">
+                            SYSTEM.ROOT // USER: FENGFENG 
+                            <span className={`w-2 h-2 rounded-full ${dbStatus === 'online' ? 'bg-success shadow-[0_0_5px_#10b981]' : 'bg-dim animate-pulse'}`} title={dbStatus}></span>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-display font-black text-white tracking-widest uppercase mb-8 leading-tight">
+                        <h1 className="text-4xl md:text-5xl font-display font-black text-white tracking-widest uppercase mb-8 leading-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                             鋒鋒的網頁導覽
                         </h1>
                         <div className="h-px w-24 bg-white/20 mx-auto"></div>
@@ -313,39 +331,42 @@
                                     placeholder="SEARCH PROTOCOL..."
                                 />
                             </div>
-                            <button onClick={() => setShowSettings(true)} className={`text-dim hover:text-white p-2 transition-colors ${apiKey ? 'text-white' : ''}`}>
-                                <Icon d={icons.settings} />
-                            </button>
+                            <div className="flex gap-2">
+                                {adminKey && (
+                                    <button onClick={runAI} disabled={aiStatus !== 'idle'} className="text-dim hover:text-white p-2">
+                                        {aiStatus === 'processing' ? <span className="animate-spin text-xs">◌</span> : <Icon d={icons.sparkles} />}
+                                    </button>
+                                )}
+                                <button onClick={() => setShowSettings(true)} className={`text-dim hover:text-white p-2 transition-colors ${adminKey ? 'text-white' : ''}`}>
+                                    <Icon d={icons.settings} />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Actions */}
-                    {apiKey && (
-                        <div className="max-w-3xl mx-auto px-6 py-4 flex justify-end">
-                            <button onClick={runAI} disabled={aiStatus !== 'idle'} className="text-[10px] border border-white/10 hover:border-white text-dim hover:text-white px-3 py-1.5 rounded transition-all flex items-center gap-2">
-                                {aiStatus === 'processing' ? 'PROCESSING...' : <><Icon d={icons.sparkles} size={10}/> AI SYNC</>}
-                            </button>
-                        </div>
-                    )}
-
-                    {/* List */}
+                    {/* List Content */}
                     <div className="max-w-3xl mx-auto px-6 py-8 w-full flex-1">
                         <div className="flex flex-col gap-3">
-                            {filtered.length === 0 && <div className="text-dim font-mono text-center py-20 tracking-widest text-xs">INITIALIZING...</div>}
+                            {isLoading && <div className="text-dim font-mono text-center py-20 tracking-widest text-xs animate-pulse">LOADING MODULES...</div>}
                             
+                            {!isLoading && filtered.length === 0 && <div className="text-dim font-mono text-center py-20">NO DATA FOUND</div>}
+
                             {filtered.map((r, i) => {
-                                const info = cloudData[r.id] || { title: r.name, desc: r.desc || 'No Data' };
-                                const isEdited = saveStatus === 'success'; // Trigger flash for all (simplified) or track specific ID
+                                const info = cloudData[r.id] || { title: r.name, desc: r.desc || 'No Description' };
                                 
                                 return (
-                                    <div key={r.id} className={`glass-item group p-6 rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-4 opacity-0 animate-fade-in-up ${isEdited ? 'saved-flash' : ''}`} style={{animationDelay: `${i*0.05}s`}}>
+                                    <div key={r.id} className="glass-item group p-6 rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in-up" style={{animationDelay: `${i*0.05}s`}}>
                                         <div className="flex-1 min-w-0 relative z-10">
-                                            <div className="flex items-center gap-3 mb-1.5">
+                                            <div className="flex items-center gap-3 mb-1.5 group/title">
                                                 <h3 className="text-lg text-white font-bold tracking-wide group-hover:text-white transition-colors truncate font-display">
                                                     {info.title}
                                                 </h3>
-                                                {/* Edit Button - Always Available */}
-                                                <button onClick={() => setEditTarget({id: r.id, title: info.title, desc: info.desc})} className="text-dim hover:text-white opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                                                {/* Edit Button - Always Visible on Hover */}
+                                                <button 
+                                                    onClick={() => setEditTarget({id: r.id, title: info.title, desc: info.desc})} 
+                                                    className="opacity-0 group-hover/title:opacity-100 text-dim hover:text-white transition-opacity p-1"
+                                                    title="編輯標題"
+                                                >
                                                     <Icon d={icons.edit} size={12} />
                                                 </button>
                                             </div>
@@ -373,32 +394,31 @@
                         </div>
                     </div>
 
-                    {/* Modals */}
-                    {(showSettings || editTarget) && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg" onClick={() => { setShowSettings(false); setEditTarget(null); }}>
+                    {/* Settings Modal */}
+                    {showSettings && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg" onClick={() => setShowSettings(false)}>
                             <div className="bg-black border border-white/20 p-8 max-w-md w-full relative shadow-[0_0_80px_rgba(255,255,255,0.05)]" onClick={e => e.stopPropagation()}>
-                                {showSettings && (
-                                    <div className="space-y-6">
-                                        <h2 className="text-lg font-display font-bold text-white border-b border-white/10 pb-2 tracking-widest">CONSOLE</h2>
-                                        <div>
-                                            <label className="text-[10px] text-dim block mb-2 font-mono tracking-widest">GEMINI API KEY (OPTIONAL)</label>
-                                            <input type="password" value={apiKey} onChange={e => { setApiKey(e.target.value); localStorage.setItem('nexus_api_key', e.target.value); }} className="w-full bg-white/5 border border-white/10 p-3 text-white text-xs font-mono outline-none focus:border-white transition-colors tracking-widest" placeholder="****************" />
-                                            <p className="text-[10px] text-dim mt-2">* Used only for AI Analysis. Manual edit works without key.</p>
-                                        </div>
-                                        <button onClick={() => setShowSettings(false)} className="w-full bg-white text-black font-bold py-3 text-xs tracking-[0.2em] hover:bg-gray-200 transition-colors">CLOSE</button>
-                                    </div>
-                                )}
-                                {editTarget && (
-                                    <div className="space-y-6">
-                                        <h2 className="text-lg font-display font-bold text-white border-b border-white/10 pb-2 tracking-widest">EDIT NODE</h2>
-                                        <input value={editTarget.title} onChange={e => setEditTarget({...editTarget, title: e.target.value})} className="w-full bg-white/5 border border-white/10 p-3 text-white font-bold outline-none focus:border-white transition-colors" />
-                                        <textarea value={editTarget.desc} onChange={e => setEditTarget({...editTarget, desc: e.target.value})} className="w-full bg-white/5 border border-white/10 p-3 text-white text-xs font-mono outline-none focus:border-white transition-colors h-24 resize-none" />
-                                        <div className="flex gap-3">
-                                            <button onClick={() => setEditTarget(null)} className="flex-1 border border-white/20 text-dim py-3 text-xs hover:text-white hover:border-white tracking-widest transition-colors">CANCEL</button>
-                                            <button onClick={saveEdit} className="flex-1 bg-white text-black font-bold py-3 text-xs hover:bg-gray-200 tracking-widest transition-colors">SAVE</button>
-                                        </div>
-                                    </div>
-                                )}
+                                <h2 className="text-lg font-display font-bold text-white border-b border-white/10 pb-2 tracking-widest mb-6">SETTINGS</h2>
+                                <div>
+                                    <label className="text-[10px] text-dim block mb-2 font-mono tracking-widest">GEMINI API KEY</label>
+                                    <input type="password" value={adminKey} onChange={e => { setAdminKey(e.target.value); localStorage.setItem('nexus_api_key', e.target.value); }} className="w-full bg-white/5 border border-white/10 p-3 text-white text-xs font-mono outline-none focus:border-white transition-colors tracking-widest" placeholder="Optional for AI..." />
+                                </div>
+                                <button onClick={() => setShowSettings(false)} className="w-full bg-white text-black font-bold py-3 text-xs tracking-[0.2em] hover:bg-gray-200 transition-colors mt-6">CLOSE</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Edit Modal */}
+                    {editTarget && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg" onClick={() => setEditTarget(null)}>
+                            <div className="bg-black border border-white/20 p-8 max-w-md w-full relative shadow-[0_0_80px_rgba(255,255,255,0.05)]" onClick={e => e.stopPropagation()}>
+                                <h2 className="text-lg font-display font-bold text-white border-b border-white/10 pb-2 tracking-widest mb-6">EDIT NODE</h2>
+                                <input value={editTarget.title} onChange={e => setEditTarget({...editTarget, title: e.target.value})} className="w-full bg-white/5 border border-white/10 p-3 text-white font-bold outline-none focus:border-white transition-colors mb-4" />
+                                <textarea value={editTarget.desc} onChange={e => setEditTarget({...editTarget, desc: e.target.value})} className="w-full bg-white/5 border border-white/10 p-3 text-white text-xs font-mono outline-none focus:border-white transition-colors h-24 resize-none mb-6" />
+                                <div className="flex gap-3">
+                                    <button onClick={() => setEditTarget(null)} className="flex-1 border border-white/20 text-dim py-3 text-xs hover:text-white hover:border-white tracking-widest transition-colors">CANCEL</button>
+                                    <button onClick={handleManualSave} className="flex-1 bg-white text-black font-bold py-3 text-xs hover:bg-gray-200 tracking-widest transition-colors">SAVE</button>
+                                </div>
                             </div>
                         </div>
                     )}
