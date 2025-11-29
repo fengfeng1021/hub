@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS // SYSTEM</title>
+    <title>鋒鋒的網頁導覽 | FENGFENG</title>
     
     <!-- React & Tailwind -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -11,8 +11,16 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Orbitron for titles, JetBrains Mono for code -->
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        window.firebaseModules = { initializeApp, getAuth, signInAnonymously, getFirestore, doc, setDoc, onSnapshot };
+    </script>
 
     <script>
         tailwind.config = {
@@ -20,31 +28,34 @@
                 extend: {
                     colors: {
                         bg: '#030508',
-                        panel: '#0a0f16',
-                        border: '#1f2937',
-                        cyan: '#00f3ff',
-                        neon: '#00f3ff',
-                        dim: '#4b5563',
+                        card: 'rgba(20, 20, 25, 0.4)',
+                        border: 'rgba(255, 255, 255, 0.1)',
+                        neon: '#6366f1', // Indigo
+                        accent: '#a855f7', // Purple
                     },
                     fontFamily: {
-                        display: ['Orbitron', 'sans-serif'],
+                        sans: ['Noto Sans TC', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
                     },
                     animation: {
-                        'spin-slow': 'spin 3s linear infinite',
-                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'glitch': 'glitch 1s linear infinite',
-                        'scan': 'scan 2s linear infinite',
+                        'blob': 'blob 10s infinite',
+                        'cursor': 'cursor .75s step-end infinite',
+                        'fade-up': 'fadeUp 0.8s ease-out forwards',
                     },
                     keyframes: {
-                        glitch: {
-                            '2%, 64%': { transform: 'translate(2px,0) skew(0deg)' },
-                            '4%, 60%': { transform: 'translate(-2px,0) skew(0deg)' },
-                            '62%': { transform: 'translate(0,0) skew(5deg)' },
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
                         },
-                        scan: {
-                            '0%': { backgroundPosition: '0% 0%' },
-                            '100%': { backgroundPosition: '0% 100%' },
+                        cursor: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0' },
+                        },
+                        fadeUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
                         }
                     }
                 }
@@ -57,98 +68,61 @@
             background-color: #030508; 
             color: #e5e7eb; 
             overflow-x: hidden;
-            background-image: 
-                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-            background-size: 30px 30px;
         }
+        /* Spotlight Effect */
+        .spotlight {
+            background: radial-gradient(600px circle at var(--x) var(--y), rgba(99, 102, 241, 0.06), transparent 40%);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;
+        }
+        .grid-bg {
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        }
+        
+        /* Glass Card */
+        .glass-card {
+            background: rgba(20, 20, 25, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(30, 30, 40, 0.6);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.2);
+        }
+        
+        /* Shimmer Border */
+        .shimmer-border {
+            position: absolute; inset: 0; pointer-events: none; border-radius: 0.75rem; padding: 1px;
+            background: linear-gradient(45deg, transparent 40%, rgba(168, 85, 247, 0.5) 50%, transparent 60%);
+            background-size: 200% 200%;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .glass-card:hover .shimmer-border { opacity: 1; animation: shimmer 2s linear infinite; }
+        @keyframes shimmer { from { background-position: 100% 100%; } to { background-position: 0% 0%; } }
 
-        /* Glitch Title Effect */
-        .glitch-text {
-            position: relative;
-        }
-        .glitch-text::before, .glitch-text::after {
-            content: attr(data-text);
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        .glitch-text::before {
-            left: 2px;
-            text-shadow: -1px 0 #ff00c1;
-            clip: rect(44px, 450px, 56px, 0);
-            animation: glitch-anim 5s infinite linear alternate-reverse;
-        }
-        .glitch-text::after {
-            left: -2px;
-            text-shadow: -1px 0 #00fff9;
-            clip: rect(44px, 450px, 56px, 0);
-            animation: glitch-anim2 5s infinite linear alternate-reverse;
-        }
-        @keyframes glitch-anim {
-            0% { clip: rect(30px, 9999px, 10px, 0); }
-            20% { clip: rect(80px, 9999px, 90px, 0); }
-            40% { clip: rect(10px, 9999px, 50px, 0); }
-            60% { clip: rect(40px, 9999px, 20px, 0); }
-            80% { clip: rect(70px, 9999px, 90px, 0); }
-            100% { clip: rect(20px, 9999px, 60px, 0); }
-        }
-        @keyframes glitch-anim2 {
-            0% { clip: rect(10px, 9999px, 80px, 0); }
-            20% { clip: rect(60px, 9999px, 10px, 0); }
-            40% { clip: rect(30px, 9999px, 60px, 0); }
-            60% { clip: rect(80px, 9999px, 40px, 0); }
-            80% { clip: rect(20px, 9999px, 70px, 0); }
-            100% { clip: rect(50px, 9999px, 30px, 0); }
-        }
-
-        /* Card Hover Glow */
-        .cyber-card {
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .cyber-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 2px; height: 100%;
-            background: #00f3ff;
-            opacity: 0;
-            transition: opacity 0.3s;
-            box-shadow: 0 0 10px #00f3ff;
-        }
-        .cyber-card:hover::before {
-            opacity: 1;
-        }
-        .cyber-card:hover {
-            background: rgba(0, 243, 255, 0.03);
-            border-color: rgba(0, 243, 255, 0.3);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.05);
-            transform: translateX(5px);
-        }
-
-        /* Scanline Overlay */
-        .scanlines {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 50;
-            opacity: 0.3;
-        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #030508; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
+
+        // --- Config ---
+        const TARGET_USER = 'fengfeng1021'; // Hardcoded User
 
         // --- Icons ---
-        const Icon = ({ d, size = 16, className = "" }) => (
+        const Icon = ({ d, size = 18, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: d }} />
         );
         const icons = {
@@ -157,96 +131,93 @@
             sparkles: '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3z"/>',
             search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
             edit: '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
-            close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
-            cpu: '<rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3"/><path d="M15 1v3"/><path d="M9 20v3"/><path d="M15 20v3"/><path d="M20 9h3"/><path d="M20 14h3"/><path d="M1 9h3"/><path d="M1 14h3"/>'
+            arrow: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>'
         };
 
-        // --- Intro Sequence Component ---
-        const BootSequence = ({ onComplete }) => {
-            const [logs, setLogs] = useState([]);
-            const [progress, setProgress] = useState(0);
-
+        // --- Mouse Spotlight Hook ---
+        const useMousePosition = () => {
+            const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
             useEffect(() => {
-                const steps = [
-                    "INITIALIZING KERNEL...",
-                    "CONNECTING TO GITHUB API...",
-                    "LOADING NEURAL ENGINE...",
-                    "ESTABLISHING SECURE CONNECTION...",
-                    "ACCESS GRANTED."
-                ];
-                
-                let currentStep = 0;
-                
+                const updateMousePosition = ev => setMousePosition({ x: ev.clientX, y: ev.clientY });
+                window.addEventListener('mousemove', updateMousePosition);
+                return () => window.removeEventListener('mousemove', updateMousePosition);
+            }, []);
+            return mousePosition;
+        };
+
+        // --- Typing Effect Hook ---
+        const useTypewriter = (text, speed = 100) => {
+            const [displayText, setDisplayText] = useState('');
+            useEffect(() => {
+                let i = 0;
+                setDisplayText('');
                 const timer = setInterval(() => {
-                    if (currentStep < steps.length) {
-                        setLogs(prev => [...prev, steps[currentStep]]);
-                        currentStep++;
-                        setProgress(prev => prev + 20);
+                    if (i < text.length) {
+                        setDisplayText(prev => prev + text.charAt(i));
+                        i++;
                     } else {
                         clearInterval(timer);
-                        setTimeout(onComplete, 800);
                     }
-                }, 300);
-
+                }, speed);
                 return () => clearInterval(timer);
-            }, []);
-
-            return (
-                <div className="fixed inset-0 bg-black z-[999] flex flex-col items-center justify-center font-mono text-neon p-4">
-                    <div className="w-full max-w-md space-y-4">
-                        <h1 className="text-4xl font-display font-bold text-center mb-8 glitch-text" data-text="NEXUS // OS">NEXUS // OS</h1>
-                        <div className="border border-dim bg-panel p-4 h-48 overflow-hidden rounded flex flex-col justify-end">
-                            {logs.map((log, i) => (
-                                <div key={i} className="text-xs text-green-400">
-                                    <span className="text-dim">[{new Date().toLocaleTimeString()}]</span> {log}
-                                </div>
-                            ))}
-                            <div className="text-xs text-neon animate-pulse mt-1">_</div>
-                        </div>
-                        <div className="h-1 w-full bg-border rounded overflow-hidden">
-                            <div className="h-full bg-neon transition-all duration-300 ease-out" style={{width: `${progress}%`}}></div>
-                        </div>
-                        <div className="flex justify-between text-xs text-dim">
-                            <span>SYSTEM BOOT</span>
-                            <span>{progress}%</span>
-                        </div>
-                    </div>
-                </div>
-            );
+            }, [text]);
+            return displayText;
         };
 
         const App = () => {
-            const [booted, setBooted] = useState(false);
-            const [username, setUsername] = useState('');
-            const [apiKey, setApiKey] = useState('');
-            const [repos, setRepos] = useState([]);
-            const [status, setStatus] = useState('idle');
-            const [aiStatus, setAiStatus] = useState('idle'); 
-            const [showSettings, setShowSettings] = useState(false);
-            const [searchTerm, setSearchTerm] = useState('');
+            const { x, y } = useMousePosition();
+            const titleText = useTypewriter("鋒鋒的網頁導覽", 150);
             
-            const [editingRepo, setEditingRepo] = useState(null);
+            // State
+            const [adminKey, setAdminKey] = useState('');
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [repos, setRepos] = useState([]);
+            const [cloudData, setCloudData] = useState({});
+            const [status, setStatus] = useState('loading');
+            const [aiStatus, setAiStatus] = useState('idle');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [showSettings, setShowSettings] = useState(false);
+            const [editingId, setEditingId] = useState(null);
             const [editTitle, setEditTitle] = useState('');
             const [editDesc, setEditDesc] = useState('');
+            
+            const [db, setDb] = useState(null);
 
+            // Init
             useEffect(() => {
-                const u = localStorage.getItem('nexus_user');
-                const k = localStorage.getItem('nexus_key');
-                if (u) setUsername(u);
-                if (k) setApiKey(k);
-                if (u) fetchRepos(u);
+                const init = async () => {
+                    const { initializeApp, getAuth, signInAnonymously, getFirestore } = window.firebaseModules;
+                    const app = initializeApp(JSON.parse(__firebase_config));
+                    const auth = getAuth(app);
+                    const firestore = getFirestore(app);
+                    setDb(firestore);
+                    await signInAnonymously(auth);
+                    
+                    loadData(TARGET_USER, firestore);
+
+                    const savedKey = localStorage.getItem('nexus_admin_key');
+                    if (savedKey) { setAdminKey(savedKey); setIsAdmin(true); }
+                };
+                if (window.firebaseModules) init();
             }, []);
 
-            const fetchRepos = async (user) => {
-                if (!user) return;
-                setStatus('loading');
+            const loadData = async (user, firestore) => {
+                const { doc, onSnapshot } = window.firebaseModules;
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
+                
+                // Cloud Sync
+                const docRef = doc(firestore, 'artifacts', appId, 'public', 'data', 'nexus_profiles', user.toLowerCase());
+                onSnapshot(docRef, (snap) => {
+                    if (snap.exists()) setCloudData(snap.data().repos || {});
+                });
+
+                // GitHub Fetch
                 try {
                     const res = await fetch(`https://api.github.com/users/${user}/repos?sort=updated&per_page=100&type=owner`);
-                    if (!res.ok) throw new Error('CONNECTION REFUSED');
                     const data = await res.json();
+                    if(!Array.isArray(data)) throw new Error("GitHub Limit");
                     
-                    const hidden = ['hub', 'nav', `${user.toLowerCase()}.github.io`];
-                    
+                    const hidden = ['hub', 'nav', `${user.toLowerCase()}.github.io`, 'fengfeng1021.github.io'];
                     const list = data
                         .filter(r => r.has_pages)
                         .filter(r => !hidden.includes(r.name.toLowerCase()))
@@ -255,209 +226,234 @@
                             name: r.name,
                             desc: r.description,
                             url: r.homepage || `https://${user}.github.io/${r.name}`,
-                            date: r.updated_at.split('T')[0],
-                            manualTitle: localStorage.getItem(`manual_t_${r.id}`),
-                            manualDesc: localStorage.getItem(`manual_d_${r.id}`),
-                            aiTitle: localStorage.getItem(`t_${r.id}`),
-                            aiDesc: localStorage.getItem(`d_${r.id}`)
+                            date: r.updated_at.split('T')[0]
                         }));
-                    
                     setRepos(list);
-                    setStatus('idle');
+                    setStatus('ready');
                 } catch (e) {
-                    alert(e.message);
+                    console.error(e);
                     setStatus('error');
                 }
             };
 
+            const saveToCloud = async (newData) => {
+                if (!db) return;
+                const { doc, setDoc } = window.firebaseModules;
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default';
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'nexus_profiles', TARGET_USER), {
+                        repos: newData,
+                        lastUpdate: new Date().toISOString()
+                    }, { merge: true });
+                    setCloudData(newData);
+                } catch(e) { alert("Save Error"); }
+            };
+
             const runAI = async () => {
-                if (!apiKey) { setShowSettings(true); return; }
-                const targets = repos.filter(r => !r.manualTitle); 
-                if (!targets.length) { alert("NO TARGETS FOUND FOR ANALYSIS"); return; }
-
-                setAiStatus('processing');
-                const items = targets.map(r => `ID:${r.id} | Name:${r.name} | GitHubDesc:${r.desc || 'None'}`).join('\n');
+                if (!adminKey) return;
+                const targets = repos.filter(r => !cloudData[r.id]);
+                if (!targets.length) { alert("所有專案皆已命名"); return; }
                 
-                const prompt = `
-                    Act as a Sci-Fi Interface Designer.
-                    Task: Rename these web apps for a Cyberpunk HUD.
-                    Language: Traditional Chinese (Taiwan).
-                    Style: High-tech, Powerful, Concise.
-                    
-                    Input:
-                    ${items}
-
-                    Output JSON: [{"id": 123, "title": "...", "desc": "..."}]
-                `;
+                setAiStatus('processing');
+                const items = targets.map(r => `ID:${r.id}|${r.name}|${r.desc||''}`).join('\n');
+                const prompt = `Rename GitHub projects for a portfolio. Language: Traditional Chinese (Taiwan). Style: Professional & Cool. Input:\n${items}\nOutput JSON Array: [{"id": 123, "title": "...", "desc": "..."}]`;
 
                 try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${adminKey}`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ 
-                            contents: [{ parts: [{ text: prompt }] }],
-                            safetySettings: [{ category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }]
-                        })
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
-                    
                     const json = await res.json();
-                    if (json.error) throw new Error(json.error.message);
+                    const txt = json.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+                    const results = JSON.parse(txt.match(/\[.*\]/s)[0]);
+
+                    const newData = { ...cloudData };
+                    results.forEach(r => newData[r.id] = { title: r.title, desc: r.desc, isAI: true });
                     
-                    let txt = json.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-                    const match = txt.match(/\[.*\]/s);
-                    const results = match ? JSON.parse(match[0]) : [];
-
-                    const newRepos = repos.map(r => {
-                        const hit = results.find(x => x.id === r.id);
-                        if (hit) {
-                            localStorage.setItem(`t_${r.id}`, hit.title);
-                            localStorage.setItem(`d_${r.id}`, hit.desc);
-                            return { ...r, aiTitle: hit.title, aiDesc: hit.desc };
-                        }
-                        return r;
-                    });
-                    setRepos(newRepos);
+                    await saveToCloud(newData);
                     setAiStatus('done');
-                    setTimeout(() => setAiStatus('idle'), 2000);
-                } catch (e) {
-                    alert("SYSTEM ERROR: " + e.message);
-                    setAiStatus('error');
-                }
+                } catch (e) { alert("AI Error"); }
+                setTimeout(() => setAiStatus('idle'), 1000);
             };
 
-            const openEdit = (e, repo) => {
-                e.preventDefault();
-                setEditingRepo(repo);
-                setEditTitle(repo.manualTitle || repo.aiTitle || repo.name);
-                setEditDesc(repo.manualDesc || repo.aiDesc || repo.desc || '');
-            };
-
-            const saveEdit = () => {
-                if (!editingRepo) return;
-                localStorage.setItem(`manual_t_${editingRepo.id}`, editTitle);
-                localStorage.setItem(`manual_d_${editingRepo.id}`, editDesc);
-                setRepos(repos.map(r => r.id === editingRepo.id ? { ...r, manualTitle: editTitle, manualDesc: editDesc } : r));
-                setEditingRepo(null);
-            };
-
-            const saveSettings = () => {
-                localStorage.setItem('nexus_user', username);
-                localStorage.setItem('nexus_key', apiKey);
-                setShowSettings(false);
-                fetchRepos(username);
+            const handleEditSave = async () => {
+                if (!editingId) return;
+                const newData = { ...cloudData, [editingId]: { title: editTitle, desc: editDesc, isAI: false } };
+                await saveToCloud(newData);
+                setEditingId(null);
             };
 
             const filtered = repos.filter(r => {
-                const displayTitle = r.manualTitle || r.aiTitle || r.name;
-                return displayTitle.toLowerCase().includes(searchTerm.toLowerCase());
+                const info = cloudData[r.id] || { title: r.name };
+                return info.title.toLowerCase().includes(searchTerm.toLowerCase());
             });
 
-            if (!booted) return <BootSequence onComplete={() => setBooted(true)} />;
-
             return (
-                <div className="relative min-h-screen font-mono text-gray-300">
-                    <div className="scanlines"></div>
-                    
-                    <div className="max-w-4xl mx-auto px-6 py-12 relative z-10">
+                <div className="min-h-screen relative font-sans text-gray-300 selection:bg-neon selection:text-white">
+                    {/* Background Effects */}
+                    <div className="fixed inset-0 bg-bg -z-20"></div>
+                    <div className="fixed inset-0 grid-bg -z-10 opacity-30"></div>
+                    <div className="spotlight" style={{ '--x': `${x}px`, '--y': `${y}px` }}></div>
+                    <div className="fixed top-[-20%] left-[-10%] w-[600px] h-[600px] bg-purple-900/20 rounded-full blur-[120px] animate-blob -z-10"></div>
+                    <div className="fixed bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-indigo-900/20 rounded-full blur-[120px] animate-blob -z-10"></div>
+
+                    {/* Navbar */}
+                    <nav className="fixed top-0 w-full z-50 backdrop-blur-md border-b border-white/5 bg-bg/50">
+                        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-neon to-accent flex items-center justify-center text-white font-bold font-mono shadow-[0_0_15px_rgba(99,102,241,0.5)]">
+                                    FF
+                                </div>
+                                <div className="hidden md:block">
+                                    <h1 className="text-white font-bold text-sm tracking-wider">FENGFENG</h1>
+                                    <p className="text-[10px] text-gray-500 font-mono">SYSTEM.ONLINE</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-neon transition-colors">
+                                        <Icon d={icons.search} />
+                                    </div>
+                                    <input 
+                                        value={searchTerm} 
+                                        onChange={e => setSearchTerm(e.target.value)} 
+                                        className="bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-neon/50 focus:bg-white/10 transition-all w-40 focus:w-64 placeholder-gray-600"
+                                        placeholder="Search..."
+                                    />
+                                </div>
+                                <button onClick={() => setShowSettings(true)} className="text-gray-600 hover:text-white transition-colors p-2">
+                                    <Icon d={icons.settings} />
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Hero Section */}
+                    <div className="pt-32 pb-16 px-6 max-w-7xl mx-auto text-center relative">
+                        <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight min-h-[4rem]">
+                            {titleText}<span className="animate-cursor text-neon">_</span>
+                        </h1>
+                        <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed animate-fade-up" style={{animationDelay: '0.5s'}}>
+                            歡迎來到我的數位實驗室。這裡彙整了我所有的 Web 專案、工具與實驗性作品。
+                            <br/><span className="text-sm text-gray-600 font-mono mt-2 block">POWERED BY GITHUB & GEMINI AI</span>
+                        </p>
                         
-                        {/* HUD Header */}
-                        <div className="flex items-end justify-between mb-12 border-b border-neon/30 pb-4 relative">
-                            <div className="absolute bottom-0 left-0 w-1/3 h-[2px] bg-neon shadow-[0_0_10px_#00f3ff]"></div>
-                            <div>
-                                <h1 className="text-4xl md:text-5xl font-display font-black text-white glitch-text" data-text="NEXUS // HUB">
-                                    NEXUS // HUB
-                                </h1>
-                                <p className="text-xs text-neon mt-2 tracking-[0.3em]">SYSTEM ONLINE • V5.0.1</p>
+                        {isAdmin && (
+                            <div className="mt-8 animate-fade-up" style={{animationDelay: '0.8s'}}>
+                                <button onClick={runAI} disabled={aiStatus !== 'idle'} className="bg-white/5 border border-white/10 px-6 py-2 rounded-full text-sm font-bold hover:bg-neon hover:text-white hover:border-neon transition-all flex items-center gap-2 mx-auto">
+                                    {aiStatus === 'processing' ? <span className="animate-spin">◌</span> : <Icon d={icons.sparkles}/>}
+                                    {aiStatus === 'processing' ? '正在分析專案...' : '執行 AI 智慧命名'}
+                                </button>
                             </div>
-                            <button onClick={() => setShowSettings(true)} className="group flex items-center gap-2 text-dim hover:text-neon transition-colors">
-                                <span className="text-[10px] hidden md:block opacity-0 group-hover:opacity-100 transition-opacity">[CONFIG]</span>
-                                <Icon d={icons.settings} size={20} />
-                            </button>
-                        </div>
+                        )}
+                    </div>
 
-                        {/* Control Deck */}
-                        <div className="flex gap-4 mb-10 p-1 bg-panel border border-border rounded-lg relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-neon"></div>
-                            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-neon"></div>
-                            
-                            <div className="relative flex-1 flex items-center px-3 gap-3">
-                                <Icon d={icons.search} className="text-dim" />
-                                <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="SEARCH PROTOCOL..." className="w-full bg-transparent text-sm text-neon focus:outline-none placeholder-gray-700 font-bold" />
-                            </div>
-                            <button onClick={runAI} disabled={aiStatus === 'processing'} className="bg-border hover:bg-neon/10 hover:text-neon px-4 py-2 text-xs font-bold transition-all flex items-center gap-2 border-l border-border">
-                                {aiStatus === 'processing' ? <Icon d={icons.cpu} className="animate-spin" /> : <Icon d={icons.sparkles} />}
-                                <span>{aiStatus === 'processing' ? 'COMPUTING...' : 'AI ENHANCE'}</span>
-                            </button>
-                        </div>
-
-                        {/* Data Grid */}
-                        <div className="space-y-4">
-                            {status === 'loading' && <div className="text-center text-neon animate-pulse font-display">SYNCING DATABASE...</div>}
-                            
-                            {filtered.map(repo => {
-                                const title = repo.manualTitle || repo.aiTitle || repo.name;
-                                const desc = repo.manualDesc || repo.aiDesc || repo.desc || 'NO DATA AVAILABLE';
-                                const isManual = !!repo.manualTitle;
-                                const isAI = !isManual && repo.aiTitle;
-
+                    {/* Grid */}
+                    <div className="max-w-7xl mx-auto px-6 pb-24">
+                        {status === 'loading' && <div className="text-center py-20 text-gray-600 font-mono animate-pulse">LOADING DATA...</div>}
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filtered.map((r, i) => {
+                                const info = cloudData[r.id] || { title: r.name, desc: r.desc || 'No description available', isAI: false };
+                                
                                 return (
-                                    <div key={repo.id} className="cyber-card group bg-panel border border-border rounded flex items-center justify-between p-5">
-                                        <a href={repo.url} target="_blank" className="flex-1 pr-8">
-                                            <div className="flex items-center gap-3 mb-1">
-                                                <h3 className="text-xl font-bold text-white font-display tracking-wide group-hover:text-neon transition-colors">{title}</h3>
-                                                {isManual && <span className="text-[9px] bg-white text-black px-1 font-bold">MANUAL</span>}
-                                                {isAI && <span className="text-[9px] border border-neon text-neon px-1">AI_GEN</span>}
-                                            </div>
-                                            <p className="text-sm text-dim group-hover:text-gray-400 transition-colors uppercase tracking-tight">{desc}</p>
-                                        </a>
+                                    <div key={r.id} className="glass-card rounded-xl p-6 relative group h-56 flex flex-col justify-between animate-fade-up" style={{animationDelay: `${i * 0.05}s`}}>
+                                        <div className="shimmer-border"></div>
                                         
-                                        <div className="flex items-center gap-4 border-l border-border pl-6 relative">
-                                            <button onClick={(e) => openEdit(e, repo)} className="p-2 text-dim hover:text-white hover:bg-white/10 rounded transition-colors" title="OVERRIDE">
-                                                <Icon d={icons.edit} />
-                                            </button>
-                                            <a href={repo.url} target="_blank" className="text-neon opacity-50 group-hover:opacity-100 hover:scale-110 transition-all shadow-[0_0_15px_#00f3ff]">
-                                                <Icon d={icons.link} size={24} />
+                                        <div>
+                                            <div className="flex justify-between items-start mb-4">
+                                                <h3 className="text-xl font-bold text-white group-hover:text-neon transition-colors line-clamp-1">
+                                                    {info.title}
+                                                </h3>
+                                                <Icon d={icons.link} className="text-gray-600 group-hover:text-white transition-colors" />
+                                            </div>
+                                            <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
+                                                {info.desc}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-end justify-between border-t border-white/5 pt-4 mt-4">
+                                            <div className="flex gap-2">
+                                                <span className="text-[10px] font-mono text-gray-600 bg-white/5 px-2 py-1 rounded">
+                                                    {r.date}
+                                                </span>
+                                                {info.isAI && <span className="text-[10px] font-mono text-neon border border-neon/20 px-2 py-1 rounded">AI</span>}
+                                            </div>
+                                            <a href={r.url} target="_blank" className="flex items-center gap-1 text-xs font-bold text-white opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                                                LAUNCH <Icon d={icons.arrow} size={12} />
                                             </a>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
 
-                        {/* Footer Status */}
-                        <div className="mt-16 flex justify-between text-[10px] text-dim font-mono border-t border-border pt-4">
-                            <span>NODES DETECTED: {repos.length}</span>
-                            <span>SECURE CONNECTION ESTABLISHED</span>
+                                        {isAdmin && (
+                                            <button 
+                                                onClick={(e) => { e.preventDefault(); setEditingId(r.id); setEditTitle(info.title); setEditDesc(info.desc); }}
+                                                className="absolute top-4 right-12 text-gray-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all p-1"
+                                            >
+                                                <Icon d={icons.edit} />
+                                            </button>
+                                        )}
+                                        
+                                        <a href={r.url} target="_blank" className="absolute inset-0 z-0"></a>
+                                    </div>
+                                )
+                            })}
                         </div>
                     </div>
 
-                    {/* Modals (Settings & Edit) - Styled to match */}
-                    {(showSettings || editingRepo) && (
-                        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                            <div className="bg-bg border border-neon w-full max-w-md p-6 relative shadow-[0_0_30px_rgba(0,243,255,0.1)]">
-                                <h2 className="text-xl font-display font-bold text-white mb-6 glitch-text" data-text={showSettings ? "CONFIG" : "OVERRIDE"}>
-                                    {showSettings ? "SYSTEM CONFIG" : "DATA OVERRIDE"}
-                                </h2>
-                                
-                                {showSettings ? (
-                                    <div className="space-y-4">
-                                        <input value={username} onChange={e => setUsername(e.target.value)} className="w-full bg-panel border border-dim focus:border-neon p-3 text-neon outline-none" placeholder="GITHUB USER" />
-                                        <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} className="w-full bg-panel border border-dim focus:border-neon p-3 text-neon outline-none" placeholder="API KEY" />
-                                        <div className="flex gap-3 pt-2">
-                                            <button onClick={() => setShowSettings(false)} className="flex-1 py-3 border border-dim text-dim hover:text-white hover:border-white text-xs font-bold">ABORT</button>
-                                            <button onClick={saveSettings} className="flex-1 py-3 bg-neon text-black font-bold text-xs hover:bg-white transition-colors">EXECUTE</button>
-                                        </div>
+                    {/* Admin Settings Modal */}
+                    {showSettings && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowSettings(false)}>
+                            <div className="glass-card w-full max-w-sm p-6 rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
+                                <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                                    <Icon d={icons.settings} /> 管理員設定
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-xs text-gray-500 block mb-1">GEMINI API KEY</label>
+                                        <input 
+                                            type="password" 
+                                            value={adminKey}
+                                            onChange={e => {
+                                                setAdminKey(e.target.value);
+                                                setIsAdmin(!!e.target.value);
+                                                localStorage.setItem('nexus_admin_key', e.target.value);
+                                            }}
+                                            placeholder="輸入 Key 以啟用編輯功能"
+                                            className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-neon outline-none transition-colors"
+                                        />
                                     </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full bg-panel border border-dim focus:border-neon p-3 text-neon outline-none font-bold" placeholder="TITLE" />
-                                        <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className="w-full bg-panel border border-dim focus:border-neon p-3 text-gray-400 outline-none h-24 resize-none" placeholder="DESCRIPTION" />
-                                        <div className="flex gap-3 pt-2">
-                                            <button onClick={() => setEditingRepo(null)} className="flex-1 py-3 border border-dim text-dim hover:text-white hover:border-white text-xs font-bold">CANCEL</button>
-                                            <button onClick={saveEdit} className="flex-1 py-3 bg-white text-black font-bold text-xs hover:bg-neon hover:text-black transition-colors">SAVE DATA</button>
-                                        </div>
-                                    </div>
-                                )}
+                                    <p className="text-[10px] text-gray-600">
+                                        * Key 僅儲存於本地瀏覽器，用於 AI 分析與寫入資料庫。<br/>
+                                        * 訪客無法看到此畫面或使用編輯功能。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Edit Modal */}
+                    {editingId && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                            <div className="glass-card w-full max-w-md p-6 rounded-2xl shadow-2xl">
+                                <h3 className="text-white font-bold mb-6">手動編輯專案</h3>
+                                <input 
+                                    value={editTitle} 
+                                    onChange={e => setEditTitle(e.target.value)} 
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white mb-3 focus:border-accent outline-none font-bold"
+                                    placeholder="專案標題"
+                                />
+                                <textarea 
+                                    value={editDesc} 
+                                    onChange={e => setEditDesc(e.target.value)} 
+                                    className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white mb-6 h-32 resize-none focus:border-accent outline-none text-sm leading-relaxed"
+                                    placeholder="專案描述..."
+                                />
+                                <div className="flex gap-3">
+                                    <button onClick={() => setEditingId(null)} className="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition-colors">取消</button>
+                                    <button onClick={handleEditSave} className="flex-1 py-2 rounded-lg bg-neon text-white font-bold hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20">保存修改</button>
+                                </div>
                             </div>
                         </div>
                     )}
